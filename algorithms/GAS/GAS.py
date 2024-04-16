@@ -40,6 +40,7 @@ class GAS(Algorithm):
         self.h_u_size = h_u_size
         self.concat = concat
         self.build_placeholders()
+        self.train_op = None
 
         loss, probabilities = self.forward_propagation()
         self.loss, self.probabilities = loss, probabilities
