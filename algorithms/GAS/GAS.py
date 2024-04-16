@@ -218,7 +218,8 @@ class GAS(Algorithm):
 
         # Define your training operation
         with tf.GradientTape() as tape:
-            logits = self.model(feed_dict)  # Replace with your actual function to compute the logits
+            #logits = self.model(feed_dict)  # Replace with your actual function to compute the logits
+            logits = self.graph_convolutional_layers(feed_dict)
             loss = loss_fn(self.t, logits)
         gradients = tape.gradient(loss, self.trainable_variables)  # Replace with your actual trainable variables
         self.train_op = optimizer.apply_gradients(zip(gradients, self.trainable_variables))
