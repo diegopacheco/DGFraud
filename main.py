@@ -176,7 +176,8 @@ def train(args, adj_list, features, train_data, train_label, test_data, test_lab
         #sess.run()
         # net.load(sess)
 
-        t_start = time.clock()
+        #t_start = time.clock()
+        t_start = time.perf_counter()
         for epoch in range(args.epoch_num):
             train_loss = 0
             train_acc = 0
