@@ -91,7 +91,7 @@ class GAS(Algorithm):
         else:
             print("Warning: all gradients are None. Check the definition of loss and trainable variables.")
 
-        self.init = tf.global_variables_initializer()
+        #self.init = tf.global_variables_initializer() #not needed in TF 2
         print('Backward propagation finished.')
 
     def build_placeholders(self):
