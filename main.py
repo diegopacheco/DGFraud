@@ -173,7 +173,7 @@ def train(args, adj_list, features, train_data, train_label, test_data, test_lab
             u_j = np.concatenate(np.array(u_j))
 
         #sess.run(tf.global_variables_initializer())
-        sess.run()
+        #sess.run()
         # net.load(sess)
 
         t_start = time.clock()
