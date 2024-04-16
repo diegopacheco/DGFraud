@@ -206,7 +206,7 @@ class GAS(Algorithm):
             self.mom: momentum
         }
 
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+        optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
         self.train_op = optimizer.minimize(loss)
 
         #outs = self.sess.run(
