@@ -213,7 +213,15 @@ class GAS(Algorithm):
             decay_rate=0.96,
             staircase=True)
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+        # Define your optimizer
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+        # Define your training operation
+        with tf.GradientTape() as tape:
+            logits = self.model(feed_dict)  # Replace with your actual function to compute the logits
+            loss = loss_fn(self.t, logits)
+        gradients = tape.gradient(loss, self.trainable_variables)  # Replace with your actual trainable variables
+        self.train_op = optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         #outs = self.sess.run(
         #    [self.train_op, self.loss, self.accuracy, self.pred, self.probabilities],
