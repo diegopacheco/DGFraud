@@ -206,8 +206,14 @@ class GAS(Algorithm):
             self.mom: momentum
         }
 
-        optimizer = tf.optimizers.SGD(learning_rate=learning_rate)
-        self.train_op = optimizer.minimize(loss)
+        initial_learning_rate = 0.1
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate,
+            decay_steps=100000,
+            decay_rate=0.96,
+            staircase=True)
+
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
         #outs = self.sess.run(
         #    [self.train_op, self.loss, self.accuracy, self.pred, self.probabilities],
