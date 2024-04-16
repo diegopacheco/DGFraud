@@ -73,6 +73,12 @@ class GAS(Algorithm):
 
         #self.trainable_variables = [var for var in tf.trainable_variables() if 'GAS' in var.name]
 
+        W = tf.Variable(initial_value=tf.initializers.GlorotUniform()([self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
+                                                                self.class_size]), name='weights')
+        b = tf.Variable(initial_value=tf.zeros([1, self.class_size]), name='bias')
+
+        self.trainable_variables = [W,b]
+
         with tf.GradientTape() as tape:
             reg_loss = self.l2(self.loss)
             total_loss = self.loss + reg_loss
