@@ -5,7 +5,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.getcwd(), '..')))
 from base_models.layers import *
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags #tf.app.flags
 FLAGS = flags.FLAGS
 
 

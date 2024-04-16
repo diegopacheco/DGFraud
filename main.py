@@ -69,9 +69,11 @@ def arg_parser():
 
 
 def set_env(args):
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
+    #tf.reset_default_graph()
     np.random.seed(args.seed)
-    tf.set_random_seed(args.seed)
+    #tf.set_random_seed(args.seed)
+    tf.compat.v1.set_random_seed(args.seed)
 
 
 # get batch data
@@ -124,7 +126,8 @@ def load_data(args):
 
 
 def train(args, adj_list, features, train_data, train_label, test_data, test_label, paras):
-    with tf.Session() as sess:
+    with tf.compat.v1.Session() as sess:
+    #with tf.Session() as sess:
         if args.model == 'Player2Vec':
             adj_data = [normalize_adj(adj) for adj in adj_list]
             meta_size = len(adj_list)

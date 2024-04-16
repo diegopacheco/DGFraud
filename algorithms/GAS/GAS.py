@@ -43,8 +43,10 @@ class GAS(Algorithm):
 
         loss, probabilities = self.forward_propagation()
         self.loss, self.probabilities = loss, probabilities
-        self.l2 = tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(0.01),
-                                                         tf.trainable_variables())
+        #self.l2 = tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(0.01),
+        #                                                         tf.trainable_variables())
+        self.l2 = tf.keras.regularizers.l2(0.01)
+        #loss = loss + self.l2(W)
 
         self.pred = tf.one_hot(tf.argmax(self.probabilities, 1), class_size)
         print(self.pred.shape)
@@ -53,31 +55,67 @@ class GAS(Algorithm):
         print('Forward propagation finished.')
 
         self.sess = session
-        self.optimizer = tf.train.AdamOptimizer(self.lr)
-        gradients = self.optimizer.compute_gradients(self.loss + self.l2)
+        #self.optimizer = tf.train.AdamOptimizer(self.lr)
+        #self.optimizer = tf.keras.optimizers.Adam(self.lr)
+
+        initial_learning_rate = 0.1
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate,
+            decay_steps=100000,
+            decay_rate=0.96,
+            staircase=True)
+
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
+        #gradients = self.optimizer.compute_gradients(self.loss + self.l2)
+        #capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
+        #self.train_op = self.optimizer.apply_gradients(capped_gradients)
+
+        #self.trainable_variables = [var for var in tf.trainable_variables() if 'GAS' in var.name]
+
+        with tf.GradientTape() as tape:
+            reg_loss = self.l2(self.loss)
+            total_loss = self.loss + reg_loss
+            gradients = tape.gradient(total_loss, self.trainable_variables)
         capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
-        self.train_op = self.optimizer.apply_gradients(capped_gradients)
+        self.train_op = self.optimizer.apply_gradients(zip(capped_gradients, self.trainable_variables))
+
         self.init = tf.global_variables_initializer()
         print('Backward propagation finished.')
 
     def build_placeholders(self):
-        self.user_review_adj = tf.placeholder(tf.float32, [None, None], 'adjlist1')
-        self.user_item_adj = tf.placeholder(tf.float32, [None, None], 'adjlist2')
-        self.item_review_adj = tf.placeholder(tf.float32, [None, None], 'adjlist3')
-        self.item_user_adj = tf.placeholder(tf.float32, [None, None], 'adjlist4')
-        self.review_user_adj = tf.placeholder(tf.float32, [None], 'adjlist5')
-        self.review_item_adj = tf.placeholder(tf.float32, [None], 'adjlist6')
-        self.homo_adj = tf.placeholder(tf.float32, [self.nodes, self.nodes], 'comment_adj')
-        self.review_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding1')
-        self.user_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding2')
-        self.item_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding3')
-        self.batch_index = tf.placeholder(tf.int32, [None], 'index')
-        self.t = tf.placeholder(tf.float32, [None, self.class_size], 'labels')
-        self.lr = tf.placeholder(tf.float32, [], 'learning_rate')
-        self.mom = tf.placeholder(tf.float32, [], 'momentum')
+        # self.user_review_adj = tf.placeholder(tf.float32, [None, None], 'adjlist1')
+        # self.user_item_adj = tf.placeholder(tf.float32, [None, None], 'adjlist2')
+        # self.item_review_adj = tf.placeholder(tf.float32, [None, None], 'adjlist3')
+        # self.item_user_adj = tf.placeholder(tf.float32, [None, None], 'adjlist4')
+        # self.review_user_adj = tf.placeholder(tf.float32, [None], 'adjlist5')
+        # self.review_item_adj = tf.placeholder(tf.float32, [None], 'adjlist6')
+        # self.homo_adj = tf.placeholder(tf.float32, [self.nodes, self.nodes], 'comment_adj')
+        # self.review_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding1')
+        # self.user_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding2')
+        # self.item_vecs = tf.placeholder(tf.float32, [None, None], 'init_embedding3')
+        # self.batch_index = tf.placeholder(tf.int32, [None], 'index')
+        # self.t = tf.placeholder(tf.float32, [None, self.class_size], 'labels')
+        # self.lr = tf.placeholder(tf.float32, [], 'learning_rate')
+        # self.mom = tf.placeholder(tf.float32, [], 'momentum')
+        self.user_review_adj = tf.compat.v1.placeholder(tf.float32, [None, None], 'adjlist1')
+        self.user_item_adj = tf.compat.v1.placeholder(tf.float32, [None, None], 'adjlist2')
+        self.item_review_adj = tf.compat.v1.placeholder(tf.float32, [None, None], 'adjlist3')
+        self.item_user_adj = tf.compat.v1.placeholder(tf.float32, [None, None], 'adjlist4')
+        self.review_user_adj = tf.compat.v1.placeholder(tf.float32, [None], 'adjlist5')
+        self.review_item_adj = tf.compat.v1.placeholder(tf.float32, [None], 'adjlist6')
+        self.homo_adj = tf.compat.v1.placeholder(tf.float32, [self.nodes, self.nodes], 'comment_adj')
+        self.review_vecs = tf.compat.v1.placeholder(tf.float32, [None, None], 'init_embedding1')
+        self.user_vecs = tf.compat.v1.placeholder(tf.float32, [None, None], 'init_embedding2')
+        self.item_vecs = tf.compat.v1.placeholder(tf.float32, [None, None], 'init_embedding3')
+        self.batch_index = tf.compat.v1.placeholder(tf.int32, [None], 'index')
+        self.t = tf.compat.v1.placeholder(tf.float32, [None, self.class_size], 'labels')
+        self.lr = tf.compat.v1.placeholder(tf.float32, [], 'learning_rate')
+        self.mom = tf.compat.v1.placeholder(tf.float32, [], 'momentum')
 
     def forward_propagation(self):
-        with tf.variable_scope('hete_gcn'):
+        with tf.compat.v1.variable_scope('hete_gcn'):
+        #with tf.variable_scope('hete_gcn'):
             r_aggregator = ConcatenationAggregator(input_dim=self.embedding_r + self.embedding_u + self.embedding_i,
                                                    output_dim=self.encoding1,
                                                    review_item_adj=self.review_item_adj,
@@ -95,27 +133,46 @@ class GAS(Algorithm):
             h_u, h_i = iu_aggregator(inputs=None)
             print('Nodes embedding over!')
 
-        with tf.variable_scope('homo_gcn'):
+        with tf.compat.v1.variable_scope('homo_gcn'):
+        #with tf.variable_scope('homo_gcn'):
             x = self.review_vecs
             # gcn_out = GCN(x, self.homo_adj, self.gcn_dim, self.embedding_r,
             #               self.encoding4).embedding()
         print('Comment graph embedding over!')
 
-        with tf.variable_scope('classification'):
+        with tf.compat.v1.variable_scope('classification'):
+        #with tf.variable_scope('classification'):
             concatenator = GASConcatenation(review_user_adj=self.review_user_adj, review_item_adj=self.review_item_adj,
                                             review_vecs=h_r, homo_vecs=self.homo_adj,
                                             user_vecs=h_u, item_vecs=h_i)
             concated_hr = concatenator(inputs=None)
 
             batch_data = tf.matmul(tf.one_hot(self.batch_index, self.nodes), concated_hr)
-            W = tf.get_variable(name='weights',
-                                shape=[self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
-                                       self.class_size],
-                                initializer=tf.contrib.layers.xavier_initializer())
-            b = tf.get_variable(name='bias', shape=[1, self.class_size], initializer=tf.zeros_initializer())
+            # W = tf.get_variable(name='weights',
+            #                     shape=[self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
+            #                            self.class_size],
+            #                     initializer=tf.contrib.layers.xavier_initializer())
+            # W = tf.Variable(name='weights',
+            #                     shape=[self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
+            #                            self.class_size],
+            #                     initializer=tf.contrib.layers.xavier_initializer())
+            # W = tf.Variable(name='weights',
+            #     shape=[self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
+            #            self.class_size],
+            #     initializer=tf.initializers.GlorotUniform())
+            W = tf.Variable(initial_value=tf.initializers.GlorotUniform()([self.encoding1 + 2 * self.encoding2 + 2 * self.nodes + self.nodes,
+                                                               self.class_size]), name='weights')
+            
+            #b = tf.get_variable(name='bias', shape=[1, self.class_size], initializer=tf.zeros_initializer())
+            #b = tf.Variable(name='bias', shape=[1, self.class_size], initializer=tf.zeros_initializer())
+            #b = tf.Variable(name='bias', shape=[1, self.class_size], initializer=tf.zeros_initializer())
+            b = tf.Variable(initial_value=tf.zeros([1, self.class_size]), name='bias')
+
             tf.transpose(batch_data, perm=[0, 1])
             logits = tf.matmul(batch_data, W) + b
-            loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.t, logits=logits)
+            #loss = tf.losses.sigmoid_cross_entropy(multi_class_labels=self.t, logits=logits)
+            loss_fn = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+            loss = loss_fn(self.t, logits)
 
         return loss, tf.nn.sigmoid(logits)
 

@@ -6,7 +6,7 @@ https://github.com/safe-graph/DGFraud
 from base_models.inits import *
 import tensorflow as tf
 
-flags = tf.app.flags
+flags = tf.compat.v1.app.flags #tf.app.flags
 FLAGS = flags.FLAGS
 
 # global unique layer ID dictionary for layer name assignment
@@ -100,7 +100,8 @@ class GraphConvolution(Layer):
                  featureless=False, norm=False, **kwargs):
         super(GraphConvolution, self).__init__(**kwargs)
 
-        self.dropout = dropout
+        #self.dropout = dropout
+        self.dropout = min(0.999, dropout)
         self.act = act
         self.support = placeholders['a']
         self.sparse_inputs = sparse_inputs
@@ -112,7 +113,8 @@ class GraphConvolution(Layer):
         # helper variable for sparse dropout
         self.num_features_nonzero = placeholders['num_features_nonzero']
 
-        with tf.variable_scope(self.name + '_vars'):
+        with tf.compat.v1.variable_scope(self.name + '_vars'):
+        #with tf.variable_scope(self.name + '_vars'):
             for i in range(1):
                 self.vars['weights_' + str(i)] = glorot([input_dim, output_dim],
                                                         name='weights_' + str(i))
@@ -125,11 +127,15 @@ class GraphConvolution(Layer):
     def _call(self, inputs):
         x = inputs
 
+        print(f"freaking dropout: {self.dropout}")
+
         # dropout
         if self.sparse_inputs:
             x = sparse_dropout(x, 1 - self.dropout, self.num_features_nonzero)
         else:
             x = tf.nn.dropout(x, 1 - self.dropout)
+
+        #self.dropout = 0.999
 
         # convolve
         supports = list()
@@ -282,7 +288,8 @@ class ConcatenationAggregator(Layer):
         else:
             name = ''
 
-        with tf.variable_scope(self.name + name + '_vars'):
+        with tf.compat.v1.variable_scope(self.name + name + '_vars'):
+        #with tf.variable_scope(self.name + name + '_vars'):
             self.vars['con_agg_weights'] = glorot([input_dim, output_dim],
                                                   name='con_agg_weights')
 
@@ -293,17 +300,25 @@ class ConcatenationAggregator(Layer):
         self.output_dim = output_dim
 
     def _call(self, inputs):
-        review_vecs = tf.nn.dropout(self.review_vecs, 1 - self.dropout)
-        user_vecs = tf.nn.dropout(self.user_vecs, 1 - self.dropout)
-        item_vecs = tf.nn.dropout(self.item_vecs, 1 - self.dropout)
+        #review_vecs = tf.nn.dropout(self.review_vecs, 1 - self.dropout)
+        #dropout_rate = 0.0 if self.dropout >= 1.0 else self.dropout
+        dropout_rate = min(0.999, float(self.dropout)) if self.dropout else 0.5
+        review_vecs = tf.nn.dropout(self.review_vecs, 1 - dropout_rate)
+
+        #user_vecs = tf.nn.dropout(self.user_vecs, 1 - self.dropout)
+        #item_vecs = tf.nn.dropout(self.item_vecs, 1 - self.dropout)
+        user_vecs = tf.nn.dropout(self.user_vecs, 1 - dropout_rate)
+        item_vecs = tf.nn.dropout(self.item_vecs, 1 - dropout_rate)
 
         # neighbor sample
         ri = tf.nn.embedding_lookup(item_vecs,
                                     tf.cast(self.review_item_adj, dtype=tf.int32))
-        ri = tf.transpose(tf.random_shuffle(tf.transpose(ri)))
+        #ri = tf.transpose(tf.random_shuffle(tf.transpose(ri)))
+        ri = tf.transpose(tf.random.shuffle(tf.transpose(ri)))
 
         ru = tf.nn.embedding_lookup(user_vecs, tf.cast(self.review_user_adj, dtype=tf.int32))
-        ru = tf.transpose(tf.random_shuffle(tf.transpose(ru)))
+        #ru = tf.transpose(tf.random_shuffle(tf.transpose(ru)))
+        ru = tf.transpose(tf.random.shuffle(tf.transpose(ru)))
 
         concate_vecs = tf.concat([review_vecs, ru, ri], axis=1)
 
@@ -340,7 +355,8 @@ class AttentionAggregator(Layer):
         else:
             name = ''
 
-        with tf.variable_scope(self.name + name + '_vars'):
+        with tf.compat.v1.variable_scope(self.name + name + '_vars'):
+        #with tf.variable_scope(self.name + name + '_vars'):
 
             self.vars['user_weights'] = glorot([input_dim1, hid_dim],
                                                name='user_weights')
@@ -363,6 +379,10 @@ class AttentionAggregator(Layer):
 
     def _call(self, inputs):
 
+        print(f"Freaking Dropout in AttentionAggregator: {self.dropout}")
+        if (self.dropout==0.0):
+            self.dropout=0.999
+
         review_vecs = tf.nn.dropout(self.review_vecs, 1 - self.dropout)
         user_vecs = tf.nn.dropout(self.user_vecs, 1 - self.dropout)
         item_vecs = tf.nn.dropout(self.item_vecs, 1 - self.dropout)
@@ -371,19 +391,23 @@ class AttentionAggregator(Layer):
 
         # neighbor sample
         ur = tf.nn.embedding_lookup(review_vecs, tf.cast(self.user_review_adj, dtype=tf.int32))
-        ur = tf.transpose(tf.random_shuffle(tf.transpose(ur)))
+        #ur = tf.transpose(tf.random_shuffle(tf.transpose(ur)))
+        ur = tf.transpose(tf.random.shuffle(tf.transpose(ur)))
         # ur = tf.slice(ur, [0, 0], [-1, num_samples])
 
         ri = tf.nn.embedding_lookup(item_vecs, tf.cast(self.user_item_adj, dtype=tf.int32))
-        ri = tf.transpose(tf.random_shuffle(tf.transpose(ri)))
+        #ri = tf.transpose(tf.random_shuffle(tf.transpose(ri)))
+        ri = tf.transpose(tf.random.shuffle(tf.transpose(ri)))
         # ri = tf.slice(ri, [0, 0], [-1, num_samples])
 
         ir = tf.nn.embedding_lookup(review_vecs, tf.cast(self.item_review_adj, dtype=tf.int32))
-        ir = tf.transpose(tf.random_shuffle(tf.transpose(ir)))
+        #ir = tf.transpose(tf.random_shuffle(tf.transpose(ir)))
+        ir = tf.transpose(tf.random.shuffle(tf.transpose(ir)))
         # ir = tf.slice(ir, [0, 0], [-1, num_samples])
 
         ru = tf.nn.embedding_lookup(user_vecs, tf.cast(self.item_user_adj, dtype=tf.int32))
-        ru = tf.transpose(tf.random_shuffle(tf.transpose(ru)))
+        #ru = tf.transpose(tf.random_shuffle(tf.transpose(ru)))
+        ru = tf.transpose(tf.random.shuffle(tf.transpose(ru)))
         # ru = tf.slice(ru, [0, 0], [-1, num_samples])
 
         concate_user_vecs = tf.concat([ur, ri], axis=2)
