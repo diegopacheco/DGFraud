@@ -205,9 +205,15 @@ class GAS(Algorithm):
             self.lr: learning_rate,
             self.mom: momentum
         }
-        outs = self.sess.run(
-            [self.train_op, self.loss, self.accuracy, self.pred, self.probabilities],
-            feed_dict=feed_dict)
+
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
+        self.train_op = optimizer.minimize(loss)
+
+        #outs = self.sess.run(
+        #    [self.train_op, self.loss, self.accuracy, self.pred, self.probabilities],
+        #    feed_dict=feed_dict)
+        outs = self.sess.run([self.train_op, self.loss, self.accuracy, self.pred, self.probabilities], feed_dict=feed_dict)
+
         loss = outs[1]
         acc = outs[2]
         pred = outs[3]
