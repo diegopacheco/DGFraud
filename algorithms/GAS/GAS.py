@@ -83,8 +83,10 @@ class GAS(Algorithm):
             reg_loss = self.l2(self.loss)
             total_loss = self.loss + reg_loss
             gradients = tape.gradient(total_loss, self.trainable_variables)
-        capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gradients if grad is not None]
-        self.train_op = self.optimizer.apply_gradients(zip(capped_gradients, self.trainable_variables))
+        gradients = tape.gradient(total_loss, self.trainable_variables)
+        non_none_gradients = [grad_var for grad_var in zip(gradients, self.trainable_variables) if grad_var[0] is not None]
+        capped_gradients = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in non_none_gradients]
+        self.train_op = self.optimizer.apply_gradients(capped_gradients)
 
         self.init = tf.global_variables_initializer()
         print('Backward propagation finished.')
